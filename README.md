@@ -1,10 +1,11 @@
 # nc-trapphone
 
 A comprehensive and immersive burner phone system for drug dealing in QBCore Framework with realistic messaging, dynamic pricing, and NPC deal locations.
-For support and more resources, join our Discord - [Discord.gg/NCHub](https://discord.gg/NCHub)
+- For support and more resources, join our Discord - [Discord.gg/NCHub](https://discord.gg/NCHub)
 ## Preview & Support
+Youtube Video Showcase - [Click Me](https://www.youtube.com/watch?v=nR1-rCSCgdk)
+
 ![NCHub Trap Phone   Drug Selling](https://github.com/user-attachments/assets/100b8e3b-7ead-4980-8c44-471ea41a3929)
-- [Video Showcase](https://www.youtube.com/watch?v=nR1-rCSCgdk)
 
 ## Features
 
