@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trap Phone</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="phone-container">
+        <div class="phone">
+            <div class="phone-inner">
+                <div class="notch">
+                    <div class="notch-circle"></div>
+                </div>
+                
+                <div class="home-screen" id="homeScreen">
+                    <div class="background-pattern"></div>
+                    <div class="status-bar">
+                        <div class="time" id="timeDisplay">4:27 PM Friday</div>
+                        <div class="connection">4G</div>
+                    </div>
+                    
+                    <div class="app-grid">
+                        <div class="app" id="messagesApp">
+                            <div class="app-icon messages-app">
+                                <i class="fa fa-comment"></i>
+                                <div class="notification-badge" id="notification-badge"></div>
+                            </div>
+                            <div class="app-name">Messages</div>
+                        </div>
+                        
+                        <div class="app">
+                            <div class="app-icon journal-app">
+                                <i class="fa fa-edit"></i>
+                            </div>
+                            <div class="app-name">Journal</div>
+                        </div>
+                        
+                        <div class="app">
+                            <div class="app-icon products-app">
+                                <i class="fa fa-dropbox"></i>
+                            </div>
+                            <div class="app-name">Products</div>
+                        </div>
+                        
+                        <div class="app">
+                            <div class="app-icon contacts-app">
+                                <i class="fa fa-user"></i>
+                            </div>
+                            <div class="app-name">Contacts</div>
+                        </div>
+                        
+                        <div class="app">
+                            <div class="app-icon map-app">
+                                <i class="fa fa-map"></i>
+                            </div>
+                            <div class="app-name">Map</div>
+                        </div>
+                        
+                        <div class="app">
+                            <div class="app-icon dealers-app">
+                                <i class="fa fa-handshake"></i>
+                            </div>
+                            <div class="app-name">Dealers</div>
+                        </div>
+                        
+                        <div class="app">
+                            <div class="app-icon deliveries-app">
+                                <i class="fa fa-truck"></i>
+                            </div>
+                            <div class="app-name">Deliveries</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="messages-screen" id="messagesScreen">
+                    <div class="header">
+                        <div class="back-btn" id="homeFromMessages">
+                            <i class="fa fa-chevron-left"></i>
+                        </div>
+                        <h1>Messages</h1>
+                        <div class="add-contact" id="addContactBtn">
+                            <i class="fa fa-plus"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="messages-container" id="messagesContainer">
+                    </div>
+                </div>
+                
+                <div class="chat-screen" id="chatScreen">
+                    <div class="chat-header">
+                        <div class="back-btn" id="backToMessages">
+                            <i class="fa fa-chevron-left"></i>
+                        </div>
+                        <div class="chat-contact">
+                            <div class="chat-avatar" id="chatAvatar">
+                                <span class="char-img">👨</span>
+                            </div>
+                            <div class="chat-name" id="chatName">Kevin Oakley</div>
+                            <div class="rep-bar" id="repBar"></div>
+                            <div class="check-icon" id="checkIcon">
+                                <i class="fa fa-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-container" id="chatContainer">
+                    </div>
+                    
+                    <div class="options-container" id="optionsContainer">
+                    </div>
+                </div>
+                
+                <div class="overlay" id="overlay"></div>
+                <div class="counter-offer-popup" id="counterOfferPopup">
+                    <div class="popup-header">
+                        Counter-offer
+                        <div class="close-btn" id="closeCounterOffer">×</div>
+                    </div>
+                    <div class="popup-content">
+                        <div class="section-title">Customer Receives</div>
+                        <div class="item-container">
+                            <div class="minus-btn" id="quantityMinus">-</div>
+                            <div class="item-display">
+                                <div class="hand-icon">👋</div>
+                                <div class="item-text" id="itemQuantityDisplay">1x Weed Baggy</div>
+                            </div>
+                            <div class="plus-btn" id="quantityPlus">+</div>
+                        </div>
+                        
+                        <div class="drug-selector">
+                            <select id="drugSelector">
+                            </select>
+                        </div>
+                        
+                        <div class="receive-title">You Receive</div>
+                        <div class="price" id="priceDisplay">$200</div>
+                        <div class="price-increments">
+                            <span class="price-btn" id="price-sub-100">-100</span>
+                            <span class="price-btn" id="price-sub-10">-10</span>
+                            <span class="price-btn" id="price-sub-1">-1</span>
+                            <span class="price-green" id="currentPrice">$200</span>
+                            <span class="price-btn" id="price-add-1">+1</span>
+                            <span class="price-btn" id="price-add-10">+10</span>
+                            <span class="price-btn" id="price-add-100">+100</span>
+                        </div>
+                        <div class="fair-price" id="fairPriceDisplay">Fair price: $200</div>
+                        
+                        <button class="send-btn" id="sendOfferBtn">Send (75%)</button>
+                    </div>
+                </div>
+                
+                <div class="contact-popup" id="contactPopup">
+                    <div class="popup-header">
+                        New Contact
+                        <div class="close-btn" id="closeContactPopup">×</div>
+                    </div>
+                    <div class="popup-content">
+                        <p class="contact-info">Request a new contact for business?</p>
+                        <button class="contact-btn" id="confirmContact">Request Contact</button>
+                        <button class="contact-btn cancel-btn" id="cancelContact">Cancel</button>
+                    </div>
+                </div>
+                
+                <div class="home-button" id="homeButton"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
