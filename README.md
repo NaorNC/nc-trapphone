@@ -1,6 +1,6 @@
 # nc-trapphone
 
-A comprehensive and immersive burner phone system for drug dealing in QBCore Framework with realistic messaging, dynamic pricing, and NPC deal locations.
+A comprehensive and immersive burner phone system for drug dealing in QBCore and ESX Frameworks with realistic messaging, dynamic pricing, and NPC deal locations.
 - For support and more resources, join our Discord - [Discord.gg/NCHub](https://discord.gg/NCHub)
 ## Preview & Support
 Youtube Video Showcase - [Click Me](https://www.youtube.com/watch?v=yX49Cc8MTsg)
@@ -21,8 +21,9 @@ Youtube Video Showcase - [Click Me](https://www.youtube.com/watch?v=yX49Cc8MTsg)
 
 ## Dependencies
 
-- QBCore Framework
-- qb-target (optional, for enhanced interactions)
+- QBCore Framework OR ESX Framework
+- qb-target (For QBCore enhanced interactions)
+- ox_target (for ESX & QBCore enhanced interactions)
 
 ## Optional Integrations
 
@@ -37,6 +38,12 @@ Youtube Video Showcase - [Click Me](https://www.youtube.com/watch?v=yX49Cc8MTsg)
 4. Add the trap phone item to your items.lua (see below for instructions)
 5. Configure settings in `config.lua` to match your server's economy
 6. Restart your server
+
+## Framework Selection
+In the config.lua file, select your framework:
+```lua
+Config.Framework = 'qb' -- 'qb' for QBCore, 'esx' for ESX
+```
 
 ## Item Installation
 
@@ -180,6 +187,60 @@ Youtube Video Showcase - [Click Me](https://www.youtube.com/watch?v=yX49Cc8MTsg)
 },
 ```
 
+### For ESX
+
+#### Using Database Method:
+```sql
+INSERT INTO `items` (`name`, `label`, `weight`, `rare`, `can_remove`) VALUES
+('trapphone', 'Trap Phone', 1, 0, 1),
+('weed_baggy', 'Weed Baggy', 1, 0, 1),
+('coke_baggy', 'Cocaine Baggy', 1, 0, 1),
+('meth_baggy', 'Meth Baggy', 1, 0, 1),
+('mega_death', 'Mega Death', 1, 0, 1);
+
+#### Using ox_inventory (data/items.lua):
+```lua
+['trapphone'] = {
+    label = 'Trap Phone',
+    weight = 500,
+    stack = false,
+    close = true,
+    description = 'A burner phone used for illegal business'
+},
+['weed_baggy'] = {
+    label = 'Weed Baggy',
+    weight = 200,
+    stack = true,
+    close = true,
+    description = 'Small bag of weed'
+},
+['coke_baggy'] = {
+    label = 'Cocaine Baggy',
+    weight = 200,
+    stack = true,
+    close = true,
+    description = 'Small bag of cocaine'
+},
+['meth_baggy'] = {
+    label = 'Meth Baggy',
+    weight = 200,
+    stack = true,
+    close = true,
+    description = 'Small bag of meth'
+},
+['mega_death'] = {
+    label = 'Mega Death',
+    weight = 200,
+    stack = true,
+    close = true,
+    description = 'High-value custom drug'
+},
+```
+
+### Adding Drug Items (if needed)
+
+See the sections above for adding the drug items in your respective framework.
+
 ## Configuration Options
 
 The `config.lua` file provides extensive customization options:
@@ -210,6 +271,12 @@ Config = {
     }
 }
 ```
+
+### Image Paths
+- For QBCore: Add to `qb-inventory/html/images/`
+- For ESX: 
+  - Standard ESX inventory: Add to `esx_inventoryhud/html/img/items/`
+  - ox_inventory: Add to `ox_inventory/web/images/`
 
 ## Image Installation
 
