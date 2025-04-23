@@ -1,4 +1,4 @@
-local QBCore = exports['qb-core']:GetCoreObject()
+local QBCore, ESX = nil, nil
 local PlayerData = {}
 local TrapPhoneVisible = false
 local ActiveContact = nil
@@ -13,6 +13,61 @@ local PedDealMap = {}
 local phoneProp = 0
 local phoneAnimDict = "cellphone@"
 local phoneAnim = "cellphone_text_in"
+
+if Config.Framework == 'esx' then
+    Citizen.CreateThread(function()
+        while ESX == nil do
+            Wait(0)
+        end
+        
+        PlayerData = ESX.GetPlayerData()
+        print("Initial ESX player data loaded")
+    end)
+    
+    RegisterNetEvent('esx:playerLoaded')
+    AddEventHandler('esx:playerLoaded', function(xPlayer)
+        PlayerData = xPlayer
+        print("ESX player data updated from playerLoaded event")
+    end)
+    
+    RegisterNetEvent('esx:addInventoryItem')
+    AddEventHandler('esx:addInventoryItem', function(itemName, count)
+        print("Item added: " .. itemName .. " x" .. count)
+        if not PlayerData.inventory then PlayerData.inventory = {} end
+        
+        local found = false
+        for i=1, #PlayerData.inventory do
+            if PlayerData.inventory[i].name == itemName then
+                PlayerData.inventory[i].count = count
+                found = true
+                break
+            end
+        end
+        
+        if not found then
+            table.insert(PlayerData.inventory, {name = itemName, count = count})
+        end
+    end)
+    
+    RegisterNetEvent('esx:removeInventoryItem')
+    AddEventHandler('esx:removeInventoryItem', function(itemName, count)
+        print("Item removed: " .. itemName .. " x" .. count)
+        if not PlayerData.inventory then return end
+        
+        for i=1, #PlayerData.inventory do
+            if PlayerData.inventory[i].name == itemName then
+                PlayerData.inventory[i].count = count
+                break
+            end
+        end
+    end)
+end
+
+if Config.Framework == 'qb' then
+    QBCore = exports['qb-core']:GetCoreObject()
+elseif Config.Framework == 'esx' then
+    ESX = exports['es_extended']:getSharedObject()
+end
 
 function StartPhoneAnimation()
     local player = PlayerPedId()
@@ -59,27 +114,19 @@ function DeletePhone()
     StopAnimTask(player, "cellphone@in_car@ds", phoneAnim, 1.0)
 end
 
-function HasTrapPhone()
-    local items = PlayerData.items
-    if not items then return false end
-    
-    for _, item in pairs(items) do
-        if item.name == Config.TrapPhoneItem and item.amount > 0 then
-            return true
-        end
-    end
-    
-    return false
-end
-
 _G.CurrentDealInfo = nil
 
 Citizen.CreateThread(function()
-    while QBCore == nil do
+    while QBCore == nil and ESX == nil do
         Wait(200)
     end
     
-    PlayerData = QBCore.Functions.GetPlayerData()
+    if Config.Framework == 'qb' then
+        PlayerData = QBCore.Functions.GetPlayerData()
+    elseif Config.Framework == 'esx' then
+        PlayerData = ESX.GetPlayerData()
+    end
+    
     print("^2Trap Phone: Script initializing...^7")
     
     RegisterCommand('trapphone', function()
@@ -119,23 +166,46 @@ Citizen.CreateThread(function()
     end
 end)
 
-RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
-    PlayerData = QBCore.Functions.GetPlayerData()
-end)
+if Config.Framework == 'qb' then
+    RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
+        PlayerData = QBCore.Functions.GetPlayerData()
+    end)
 
-RegisterNetEvent('QBCore:Client:OnPlayerUnload', function()
-    PlayerData = {}
-    CloseTrapPhone()
-    CleanupAllDealerPeds()
-end)
+    RegisterNetEvent('QBCore:Client:OnPlayerUnload', function()
+        PlayerData = {}
+        CloseTrapPhone()
+        CleanupAllDealerPeds()
+    end)
 
-RegisterNetEvent('QBCore:Player:SetPlayerData', function(data)
-    PlayerData = data
-end)
+    RegisterNetEvent('QBCore:Player:SetPlayerData', function(data)
+        PlayerData = data
+    end)
+elseif Config.Framework == 'esx' then
+    RegisterNetEvent('esx:playerLoaded')
+    AddEventHandler('esx:playerLoaded', function(xPlayer)
+        PlayerData = xPlayer
+    end)
+    
+    RegisterNetEvent('esx:onPlayerLogout')
+    AddEventHandler('esx:onPlayerLogout', function()
+        PlayerData = {}
+        CloseTrapPhone()
+        CleanupAllDealerPeds()
+    end)
+    
+    RegisterNetEvent('esx:setPlayerData')
+    AddEventHandler('esx:setPlayerData', function(key, value)
+        PlayerData[key] = value
+    end)
+end
 
 RegisterNetEvent('trap_phone:showNotification')
 AddEventHandler('trap_phone:showNotification', function(message, type)
-    QBCore.Functions.Notify(message, type)
+    if Config.Framework == 'qb' then
+        QBCore.Functions.Notify(message, type)
+    elseif Config.Framework == 'esx' then
+        ESX.ShowNotification(message)
+    end
 end)
 
 RegisterNUICallback('setWaypoint', function(data, cb)
@@ -221,17 +291,42 @@ function ToggleTrapPhone()
             OpenTrapPhone()
         end
     else
-        QBCore.Functions.Notify('You need a trap phone to do this', 'error')
+        if Config.Framework == 'qb' then
+            QBCore.Functions.Notify('You need a trap phone to do this', 'error')
+        elseif Config.Framework == 'esx' then
+            ESX.ShowNotification('You need a trap phone to do this')
+        end
     end
 end
 
 function HasTrapPhone()
-    local items = PlayerData.items
-    if not items then return false end
+    print("Checking for trap phone: " .. Config.TrapPhoneItem)
     
-    for _, item in pairs(items) do
-        if item.name == Config.TrapPhoneItem and item.amount > 0 then
-            return true
+    if Config.Framework == 'qb' then
+        local items = PlayerData.items
+        if not items then return false end
+        
+        for _, item in pairs(items) do
+            if item.name == Config.TrapPhoneItem and item.amount > 0 then
+                return true
+            end
+        end
+    elseif Config.Framework == 'esx' then
+        if not PlayerData.inventory then 
+            print("ESX: PlayerData.inventory is nil")
+            return false 
+        end
+        
+        print("ESX Inventory Contents:")
+        for _, item in pairs(PlayerData.inventory) do
+            print(item.name .. " x" .. (item.count or 0))
+        end
+        
+        for _, item in pairs(PlayerData.inventory) do
+            if item.name == Config.TrapPhoneItem and item.count > 0 then
+                print("Found trap phone in inventory: " .. item.count)
+                return true
+            end
         end
     end
     
@@ -256,11 +351,18 @@ function OpenTrapPhone()
         currentMeetLocationData = CurrentMeetLocation
     end
     
+    local playerName = ""
+    if Config.Framework == 'qb' then
+        playerName = PlayerData.charinfo.firstname .. ' ' .. PlayerData.charinfo.lastname
+    elseif Config.Framework == 'esx' then
+        playerName = PlayerData.name
+    end
+    
     SendNUIMessage({
         action = 'openPhone',
         drugs = availableDrugs,
         contacts = contacts,
-        playerName = PlayerData.charinfo.firstname .. ' ' .. PlayerData.charinfo.lastname,
+        playerName = playerName,
         currentMeetLocation = currentMeetLocationData
     })
     
@@ -289,27 +391,83 @@ end
 
 function GetPlayerDrugs()
     local playerDrugs = {}
-    local items = PlayerData.items
     
-    if not items then return playerDrugs end
-    
-    for _, item in pairs(items) do
-        for _, drugConfig in pairs(Config.TrapPhoneDrugs) do
-            if item.name == drugConfig.name and item.amount > 0 then
-                table.insert(playerDrugs, {
-                    name = item.name,
-                    label = drugConfig.label,
-                    streetName = drugConfig.streetName,
-                    amount = item.amount,
-                    basePrice = drugConfig.basePrice,
-                    minPrice = drugConfig.priceRange[1],
-                    maxPrice = drugConfig.priceRange[2]
-                })
-                break
+    if Config.Framework == 'qb' then
+        local items = PlayerData.items
+        if not items then return playerDrugs end
+        
+        for _, item in pairs(items) do
+            for _, drugConfig in pairs(Config.TrapPhoneDrugs) do
+                if item.name == drugConfig.name and item.amount > 0 then
+                    table.insert(playerDrugs, {
+                        name = item.name,
+                        label = drugConfig.label,
+                        streetName = drugConfig.streetName,
+                        amount = item.amount,
+                        basePrice = drugConfig.basePrice,
+                        minPrice = drugConfig.priceRange[1],
+                        maxPrice = drugConfig.priceRange[2]
+                    })
+                    break
+                end
+            end
+        end
+    elseif Config.Framework == 'esx' then
+        local inventory = nil
+        
+        print("ESX PlayerData Structure: ")
+        for k, v in pairs(PlayerData) do
+            print(k, type(v))
+        end
+        
+        if PlayerData.inventory then
+            inventory = PlayerData.inventory
+            print("Using standard ESX inventory")
+        elseif ESX.GetPlayerData().inventory then
+            inventory = ESX.GetPlayerData().inventory
+            print("Using ESX GetPlayerData inventory")
+        else
+            print("No inventory found in PlayerData, trying to get it directly")
+            ESX.TriggerServerCallback('esx:getPlayerData', function(data)
+                if data and data.inventory then
+                    inventory = data.inventory
+                end
+            end)
+            
+            local waited = 0
+            while inventory == nil and waited < 10 do
+                Citizen.Wait(100)
+                waited = waited + 1
+            end
+        end
+        
+        if not inventory then
+            print("Failed to get inventory from ESX")
+            return playerDrugs
+        end
+        
+        for k, item in pairs(inventory) do
+            print("Checking item: " .. item.name .. " count: " .. tostring(item.count))
+            
+            for _, drugConfig in pairs(Config.TrapPhoneDrugs) do
+                if item.name == drugConfig.name and item.count and item.count > 0 then
+                    print("Found matching drug: " .. item.name .. " x" .. item.count)
+                    table.insert(playerDrugs, {
+                        name = item.name,
+                        label = drugConfig.label,
+                        streetName = drugConfig.streetName,
+                        amount = item.count,
+                        basePrice = drugConfig.basePrice,
+                        minPrice = drugConfig.priceRange[1],
+                        maxPrice = drugConfig.priceRange[2]
+                    })
+                    break
+                end
             end
         end
     end
     
+    print("Found " .. #playerDrugs .. " drugs in inventory")
     return playerDrugs
 end
 
@@ -526,7 +684,11 @@ function ProcessDealLocation()
     
     SetupMeetingPoint(location)
     
-    QBCore.Functions.Notify('Meeting location marked on your GPS', 'success')
+    if Config.Framework == 'qb' then
+        QBCore.Functions.Notify('Meeting location marked on your GPS', 'success')
+    elseif Config.Framework == 'esx' then
+        ESX.ShowNotification('Meeting location marked on your GPS')
+    end
     
     if math.random(100) <= Config.PoliceSettings.alertChance then
         AlertPolice()
@@ -847,10 +1009,16 @@ function CreateDealerNPCAtLocation(location, dealId)
                   " x" .. _G.CurrentDealInfo.quantity .. 
                   " for $" .. _G.CurrentDealInfo.price .. "^7")
             
-            QBCore.Functions.Notify('The dealer is waiting for you at the marked location', 'info')
+            if Config.Framework == 'qb' then
+                QBCore.Functions.Notify('The dealer is waiting for you at the marked location', 'info')
+            elseif Config.Framework == 'esx' then
+                ESX.ShowNotification('The dealer is waiting for you at the marked location')
+            end
             
-            if Config.UseQBTarget then
+            if Config.Framework == 'qb' and Config.UseQBTarget then
                 SetupQBTargetInteraction(dealerPed, dealId, blip)
+            elseif Config.UseOxTarget then
+                SetupOxTargetInteraction(dealerPed, dealId, blip)
             else
                 SetupDealerInteraction(dealerPed, dealId, blip)
             end
@@ -965,6 +1133,106 @@ function SetupQBTargetInteraction(dealerPed, dealId, blip)
             }
         },
         distance = 2.5,
+    })
+end
+
+function SetupOxTargetInteraction(dealerPed, dealId, blip)
+    exports.ox_target:addLocalEntity(dealerPed, {
+        {
+            name = 'drug_deal_' .. dealId,
+            icon = 'fas fa-handshake',
+            label = 'Trap Deal',
+            distance = 2.5,
+            onSelect = function()
+                if ActiveDeal and ActiveDeal.drugName and ActiveDeal.quantity and ActiveDeal.price then
+                    print("^4CRITICAL - Using ActiveDeal as highest priority source^7")
+                    print("^4ActiveDeal contains: " .. ActiveDeal.drugName .. 
+                          " x" .. ActiveDeal.quantity .. 
+                          " for $" .. ActiveDeal.price .. "^7")
+                    
+                    local exactDealDetails = {
+                        dealId = dealId or "active_deal",
+                        drugName = ActiveDeal.drugName,
+                        quantity = tonumber(ActiveDeal.quantity),
+                        price = tonumber(ActiveDeal.price)
+                    }
+                    
+                    print("^4CRITICAL - Using exact ActiveDeal details: " .. 
+                          exactDealDetails.drugName .. " x" .. 
+                          exactDealDetails.quantity .. " for $" .. 
+                          exactDealDetails.price .. "^7")
+                    
+                    local dealCompleted = HandleDrugDeal(dealerPed, dealId, exactDealDetails)
+                    
+                    if dealCompleted then
+                        if blip and DoesBlipExist(blip) then
+                            RemoveBlip(blip)
+                        end
+                    end
+                    
+                    return
+                end
+            
+                local dealDetails = nil
+                
+                local pedDealId = PedDealMap[dealerPed] or dealId
+                
+                print("^4Looking for deal. Ped Deal ID: " .. tostring(pedDealId) .. "^7")
+                
+                if pedDealId and DealerDeals and DealerDeals[pedDealId] then
+                    dealDetails = DealerDeals[pedDealId]
+                    print("^2OX-Target: Found deal in DealerDeals with ID: " .. pedDealId .. "^7")
+                
+                elseif Entity then
+                    local state = Entity(dealerPed).state
+                    if state and state.dealDetails then
+                        dealDetails = state.dealDetails
+                        print("^2OX-Target: Found deal in entity state^7")
+                    end
+                
+                elseif _G.CurrentDealInfo then
+                    dealDetails = {
+                        dealId = pedDealId or "global_deal",
+                        drugName = _G.CurrentDealInfo.drugName,
+                        quantity = _G.CurrentDealInfo.quantity,
+                        price = _G.CurrentDealInfo.price
+                    }
+                    print("^2OX-Target: Using global CurrentDealInfo^7")
+                
+                elseif ActiveDeal then
+                    dealDetails = {
+                        dealId = pedDealId or "active_deal",
+                        drugName = ActiveDeal.drugName,
+                        quantity = ActiveDeal.quantity,
+                        price = ActiveDeal.price
+                    }
+                    print("^2OX-Target: Using ActiveDeal as fallback^7")
+                end
+                
+                if dealDetails then
+                    print("^3OX-Target interaction with details - Drug: " .. dealDetails.drugName .. 
+                          ", Quantity: " .. tostring(dealDetails.quantity) .. 
+                          ", Price: $" .. tostring(dealDetails.price) .. "^7")
+                else
+                    print("^1OX-Target: No deal details found! Creating default deal.^7")
+                    
+                    dealDetails = {
+                        dealId = pedDealId or "default_deal",
+                        drugName = "weed_baggy",
+                        quantity = 1,
+                        price = 200
+                    }
+                end
+                
+                local dealCompleted = HandleDrugDeal(dealerPed, pedDealId, dealDetails)
+                
+                if dealCompleted then
+                    if blip and DoesBlipExist(blip) then
+                        RemoveBlip(blip)
+                    end
+                end
+            end
+        }
     })
 end
 
@@ -1113,63 +1381,15 @@ function HandleDrugDeal(dealerPed, dealId, dealDetails)
               ", Quantity: " .. tostring(quantity) .. 
               ", Price: $" .. tostring(price) .. "^7")
         
-        QBCore.Functions.TriggerCallback('QBCore:HasItem', function(hasItem)
-            if hasItem then
-                local playerPed = PlayerPedId()
-                
-                RequestAnimDict("mp_common")
-                while not HasAnimDictLoaded("mp_common") do
-                    Wait(10)
-                end
-                
-                TaskTurnPedToFaceEntity(dealerPed, playerPed, 1000)
-                Wait(1000)
-                
-                ClearPedTasks(dealerPed)
-                
-                TaskPlayAnim(playerPed, "mp_common", "givetake1_a", 8.0, -8.0, 2000, 0, 0, false, false, false)
-                
-                TaskPlayAnim(dealerPed, "mp_common", "givetake1_b", 8.0, -8.0, 2000, 0, 0, false, false, false)
-                
-                Wait(2000)
-                
-                local dealData = {
-                    dealId = dealId,
-                    drugName = drugName,
-                    quantity = quantity,
-                    price = price
-                }
-                
-                -- print("^1SENDING TO SERVER: " .. drugName .. " x" .. quantity .. " for $" .. price .. "^7")
-                
-                TriggerServerEvent('trap_phone:completeDeal', dealId, dealData)
-                
-                QBCore.Functions.Notify('Deal completed successfully. You received $' .. price .. ' for ' .. quantity .. 'x ' .. drugName, 'success')
-                
-                ActiveDeal = nil
-                _G.CurrentDealInfo = nil
-                CurrentMeetLocation = nil
-                
-                ClearPedTasksImmediately(dealerPed)
-                TaskWanderStandard(dealerPed, 10.0, 10)
-                
-                Citizen.SetTimeout(15000, function()
-                    if DoesEntityExist(dealerPed) then
-                        PedDealMap[dealerPed] = nil
-                        DeleteEntity(dealerPed)
-                    end
-                end)
-                
-                if DealerDeals[dealId] then
-                    DealerDeals[dealId] = nil
-                end
-                
-                return true
-            else
-                QBCore.Functions.Notify('You don\'t have ' .. quantity .. 'x ' .. drugName, 'error')
-                return false
-            end
-        end, drugName, quantity)
+        if Config.Framework == 'qb' then
+            QBCore.Functions.TriggerCallback('QBCore:HasItem', function(hasItem)
+                HandleDrugDealResponse(hasItem, dealerPed, dealId, drugName, quantity, price, blip)
+            end, drugName, quantity)
+        elseif Config.Framework == 'esx' then
+            ESX.TriggerServerCallback('QBCore:HasItem', function(hasItem)
+                HandleDrugDealResponse(hasItem, dealerPed, dealId, drugName, quantity, price, blip)
+            end, drugName, quantity)
+        end
         
         return true
     end
@@ -1218,7 +1438,11 @@ function HandleDrugDeal(dealerPed, dealId, dealDetails)
     end
     
     if not finalDealDetails then
-        QBCore.Functions.Notify('No active deal to complete', 'error')
+        if Config.Framework == 'qb' then
+            QBCore.Functions.Notify('No active deal to complete', 'error')
+        elseif Config.Framework == 'esx' then
+            ESX.ShowNotification('No active deal to complete')
+        end
         return false
     end
     
@@ -1230,65 +1454,81 @@ function HandleDrugDeal(dealerPed, dealId, dealDetails)
           ", Quantity: " .. tostring(quantity) .. 
           ", Price: $" .. tostring(price) .. "^7")
     
-    QBCore.Functions.TriggerCallback('QBCore:HasItem', function(hasItem)
-        if hasItem then
-            local playerPed = PlayerPedId()
-            
-            RequestAnimDict("mp_common")
-            while not HasAnimDictLoaded("mp_common") do
-                Wait(10)
-            end
-            
-            TaskTurnPedToFaceEntity(dealerPed, playerPed, 1000)
-            Wait(1000)
-            
-            ClearPedTasks(dealerPed)
-            
-            TaskPlayAnim(playerPed, "mp_common", "givetake1_a", 8.0, -8.0, 2000, 0, 0, false, false, false)
-            
-            TaskPlayAnim(dealerPed, "mp_common", "givetake1_b", 8.0, -8.0, 2000, 0, 0, false, false, false)
-            
-            Wait(2000)
-            
-            local dealData = {
-                dealId = dealId,
-                drugName = drugName,
-                quantity = quantity,
-                price = price
-            }
-            
-            -- print("^1SENDING TO SERVER: " .. drugName .. " x" .. quantity .. " for $" .. price .. "^7")
-            
-            TriggerServerEvent('trap_phone:completeDeal', dealId, dealData)
-            
-            QBCore.Functions.Notify('Deal completed successfully. You received $' .. price .. ' for ' .. quantity .. 'x ' .. drugName, 'success')
-            
-            ActiveDeal = nil
-            _G.CurrentDealInfo = nil
-            CurrentMeetLocation = nil
-            
-            ClearPedTasksImmediately(dealerPed)
-            TaskWanderStandard(dealerPed, 10.0, 10)
-            
-            Citizen.SetTimeout(15000, function()
-                if DoesEntityExist(dealerPed) then
-                    PedDealMap[dealerPed] = nil
-                    DeleteEntity(dealerPed)
-                end
-            end)
-            
-            if DealerDeals[dealId] then
-                DealerDeals[dealId] = nil
-            end
-            
-            return true
-        else
-            QBCore.Functions.Notify('You don\'t have ' .. quantity .. 'x ' .. drugName, 'error')
-            return false
-        end
-    end, drugName, quantity)
+    if Config.Framework == 'qb' then
+        QBCore.Functions.TriggerCallback('QBCore:HasItem', function(hasItem)
+            HandleDrugDealResponse(hasItem, dealerPed, dealId, drugName, quantity, price, blip)
+        end, drugName, quantity)
+    elseif Config.Framework == 'esx' then
+        ESX.TriggerServerCallback('QBCore:HasItem', function(hasItem)
+            HandleDrugDealResponse(hasItem, dealerPed, dealId, drugName, quantity, price, blip)
+        end, drugName, quantity)
+    end
     
     return true
+end
+
+function HandleDrugDealResponse(hasItem, dealerPed, dealId, drugName, quantity, price, blip)
+    if hasItem then
+        local playerPed = PlayerPedId()
+        
+        RequestAnimDict("mp_common")
+        while not HasAnimDictLoaded("mp_common") do
+            Wait(10)
+        end
+        
+        TaskTurnPedToFaceEntity(dealerPed, playerPed, 1000)
+        Wait(1000)
+        
+        ClearPedTasks(dealerPed)
+        
+        TaskPlayAnim(playerPed, "mp_common", "givetake1_a", 8.0, -8.0, 2000, 0, 0, false, false, false)
+        
+        TaskPlayAnim(dealerPed, "mp_common", "givetake1_b", 8.0, -8.0, 2000, 0, 0, false, false, false)
+        
+        Wait(2000)
+        
+        local dealData = {
+            dealId = dealId,
+            drugName = drugName,
+            quantity = quantity,
+            price = price
+        }
+        
+        TriggerServerEvent('trap_phone:completeDeal', dealId, dealData)
+        
+        if Config.Framework == 'qb' then
+            QBCore.Functions.Notify('Deal completed successfully. You received $' .. price .. ' for ' .. quantity .. 'x ' .. drugName, 'success')
+        elseif Config.Framework == 'esx' then
+            ESX.ShowNotification('Deal completed successfully. You received $' .. price .. ' for ' .. quantity .. 'x ' .. drugName)
+        end
+        
+        ActiveDeal = nil
+        _G.CurrentDealInfo = nil
+        CurrentMeetLocation = nil
+        
+        ClearPedTasksImmediately(dealerPed)
+        TaskWanderStandard(dealerPed, 10.0, 10)
+        
+        Citizen.SetTimeout(15000, function()
+            if DoesEntityExist(dealerPed) then
+                PedDealMap[dealerPed] = nil
+                DeleteEntity(dealerPed)
+            end
+        end)
+        
+        if DealerDeals[dealId] then
+            DealerDeals[dealId] = nil
+        end
+        
+        return true
+    else
+        if Config.Framework == 'qb' then
+            QBCore.Functions.Notify('You don\'t have ' .. quantity .. 'x ' .. drugName, 'error')
+        elseif Config.Framework == 'esx' then
+            ESX.ShowNotification('You don\'t have ' .. quantity .. 'x ' .. drugName)
+        end
+        return false
+    end
 end
 
 function CleanupAllDealerPeds()
@@ -1313,7 +1553,11 @@ function AlertPolice()
     
     TriggerServerEvent('police:server:policeAlert', 'Suspicious Phone Activity', playerCoords)
     
-    QBCore.Functions.Notify('Someone might have reported suspicious activity', 'error')
+    if Config.Framework == 'qb' then
+        QBCore.Functions.Notify('Someone might have reported suspicious activity', 'error')
+    elseif Config.Framework == 'esx' then
+        ESX.ShowNotification('Someone might have reported suspicious activity')
+    end
 end
 
 RegisterNetEvent('drug_selling:client:createDealerNPC')
