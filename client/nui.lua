@@ -1,4 +1,10 @@
-local QBCore = exports['qb-core']:GetCoreObject()
+local QBCore, ESX = nil, nil
+
+if Config.Framework == 'qb' then
+    QBCore = exports['qb-core']:GetCoreObject()
+elseif Config.Framework == 'esx' then
+    ESX = exports['es_extended']:getSharedObject()
+end
 
 function GetCurrentTimeFormatted()
     local hours = GetClockHours()
@@ -32,8 +38,10 @@ RegisterNUICallback('requestNewContact', function(data, cb)
 end)
 
 RegisterNUICallback('showNotification', function(data, cb)
-    if QBCore then
+    if Config.Framework == 'qb' then
         QBCore.Functions.Notify(data.message, data.type)
+    elseif Config.Framework == 'esx' then
+        ESX.ShowNotification(data.message)
     else
         TriggerEvent('trap_phone:showNotification', data.message, data.type)
     end
