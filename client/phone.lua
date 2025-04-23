@@ -60,11 +60,21 @@ function HasEnoughPolice()
     end
     
     local policeCount = 0
-    local players = QBCore.Functions.GetQBPlayers()
     
-    for _, player in pairs(players) do
-        if player.PlayerData.job.name == "police" and player.PlayerData.job.onduty then
-            policeCount = policeCount + 1
+    if Config.Framework == 'qb' then
+        local players = QBCore.Functions.GetQBPlayers()
+        for _, player in pairs(players) do
+            if player.PlayerData.job.name == "police" and player.PlayerData.job.onduty then
+                policeCount = policeCount + 1
+            end
+        end
+    elseif Config.Framework == 'esx' then
+        local players = ESX.GetPlayers()
+        for _, playerId in ipairs(players) do
+            local xPlayer = ESX.GetPlayerFromId(playerId)
+            if xPlayer and xPlayer.job.name == "police" and xPlayer.job.onduty then
+                policeCount = policeCount + 1
+            end
         end
     end
     
