@@ -1,22 +1,20 @@
 Config = {}
 
--- Trap Phone item settings
+Config.Framework = 'qb' -- 'qb' for QBCore, 'esx' for ESX
+
 Config.TrapPhoneItem = 'trapphone'
 
--- Target settings
-Config.UseQBTarget = true -- Use QB-Target instead of E key for interactions
+Config.UseQBTarget = true -- Use QB-Target (QBCore only)
+Config.UseOxTarget = false -- Use ox_target (Works with both QBCore and ESX)
 
--- Phone position on screen
 Config.Phone = {
     DefaultX = 70,    -- % from right edge of screen
     DefaultY = 70,    -- % from bottom of screen
     DefaultScale = 0.8 -- Scale of phone UI (0.8 = 80% of original size)
 }
 
--- Contact cooldown time in minutes
 Config.ContactCooldown = 2 -- 2 minutes between requesting new contacts
 
--- Characters/contacts for drug deals - EXPANDED LIST
 Config.Contacts = {
     {
         name = "Kevin Oakley",
@@ -67,7 +65,6 @@ Config.Contacts = {
         verified = false,
         initialMessage = "Need some product for me and my friends this weekend."
     },
-    -- NEW CONTACTS
     {
         name = "Michael Davis",
         avatar = "👨‍🦰",
@@ -126,7 +123,6 @@ Config.Contacts = {
     }
 }
 
--- Drug types available in trap phone deals
 Config.TrapPhoneDrugs = {
     {
         name = "weed_baggy",
@@ -150,7 +146,7 @@ Config.TrapPhoneDrugs = {
         priceRange = {350, 410}
     },
     {
-        name = "mega_death",  -- Custom drug
+        name = "mega_death",  
         label = "Mega Death", 
         streetName = "Mega Death",
         basePrice = 450,
@@ -158,7 +154,6 @@ Config.TrapPhoneDrugs = {
     }
 }
 
--- Meet locations where deals can happen - EXPANDED LIST
 Config.MeetLocations = {
     { name = "Sandy Shores", coords = vector3(1777.64, 3799.93, 33.65) },
     { name = "Paleto Bay", coords = vector3(-159.89, 6385.76, 31.47) },
@@ -168,7 +163,6 @@ Config.MeetLocations = {
     { name = "Mirror Park", coords = vector3(1124.05, -644.34, 56.81) },
     { name = "Chumash", coords = vector3(-3175.41, 1087.95, 20.84) },
     { name = "Harmony", coords = vector3(593.0, 2744.4, 41.9) },
-    -- NEW LOCATIONS
     { name = "La Mesa", coords = vector3(845.52, -1162.56, 25.28) },
     { name = "Vespucci Beach", coords = vector3(-1348.63, -1236.19, 4.57) },
     { name = "Rockford Hills", coords = vector3(-816.84, -191.68, 37.62) },
@@ -186,7 +180,6 @@ Config.MeetLocations = {
     { name = "Tongva Hills", coords = vector3(-1866.3, 2062.58, 135.43) }
 }
 
--- Response options from player to NPCs
 Config.ResponseOptions = {
     initial = {
         {text = "Deal", value = "deal", nextState = "deal_accepted"},
@@ -203,7 +196,6 @@ Config.ResponseOptions = {
     }
 }
 
--- NPC responses based on player choice (EXPANDED)
 Config.NPCResponses = {
     deal_accepted = {
         "Great! I'll set everything up.",
@@ -263,8 +255,7 @@ Config.NPCResponses = {
     }
 }
 
--- Police alert settings
 Config.PoliceSettings = {
-    minimumPolice = 0,  -- Minimum police required for trap phone functionality
-    alertChance = 10    -- Chance (0-100) that police will be alerted of a deal
+    minimumPolice = 0,  
+    alertChance = 10    
 }
